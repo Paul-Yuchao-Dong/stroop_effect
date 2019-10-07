@@ -1,0 +1,109 @@
+---
+title: "hedge_et_al_method"
+author: "paul"
+date: "10/5/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# For easy data manipulation
+library(foreach)
+library(dplyr)
+library(tidyr)
+library(broom)
+# For pretty plots
+library(ggplot2)
+theme_set(hrbrthemes::theme_ipsum())
+# For nice tables
+library(knitr)
+# For intra-class correlations
+library(irr)
+# For Bayesian modeling
+library(rstan)
+# For some useful utility functions
+library(hBayesDM)
+
+library(purrr)
+```
+
+```{r}
+# Data path and individual subject file names
+data_path <- here::here("Data", "RawData", "Study1-Stroop")
+files_t1 <- list.files(data_path, pattern = "*1.csv")
+files_t2 <- list.files(data_path, pattern = "*2.csv")
+
+# Create long-format stroop task data including all subjects
+long_stroop <- map_dfr(1:47, function(i) {
+  # For time 1
+  tmp_t1 <- read.csv(file.path(data_path, files_t1[i]), header = F) %>%
+    mutate(subj_num = i,
+           time = 1)
+  # For time 2 (about 3 weeks apart)
+  tmp_t2 <- read.csv(file.path(data_path, files_t2[i]), header = F) %>%
+    mutate(subj_num = i,
+           time = 2)
+  # Condition (0 = congruent, 1=neutral, 2=incongruent), 
+  # Correct (1) or incorrect (0), 
+  # Reaction time is in seconds
+  names(tmp_t1)[1:6] <- names(tmp_t2)[1:6] <- c("Block", "Trial", "Unused", 
+                                                "Condition", "Correct", "RT")
+  rbind(tmp_t1, tmp_t2)
+})
+
+# Compute Stroop effect for each person at each time (equation 1)
+sum_stroop <- long_stroop %>%
+  group_by(subj_num, time) %>%
+  summarize(stroop_eff = mean(RT[Condition==2]) - mean(RT[Condition==0]))
+
+# Peak at the data
+kable(head(sum_stroop), digits = 3)
+```
+```{r}
+# Means and SDs of Stroop effect at each timepoint
+sum_stroop %>%
+  ungroup() %>%
+  group_by(time) %>%
+  summarize(N = n(),
+            Mean = round(mean(stroop_eff), 3),
+            SD = round(sd(stroop_eff), 3)) %>%
+  kable(digits = 3)
+```
+```{r}
+sum_stroop %>% 
+  group_by(time) %>% 
+  group_map(~t.test(.$stroop_eff) %>% tidy) %>% 
+  bind_rows() 
+```
+```{r}
+sum_stroop %>% 
+  {t.test(.$stroop_eff) %>% tidy}
+```
+# ICC coming!
+```{r}
+# Format for test-retest analysis
+stroop_unpooled <- sum_stroop %>%
+  ungroup() %>%
+  mutate(time = ifelse(time==1, "Stroop_T1", "Stroop_T2"),
+         pooled = "No", 
+         Replication = "Sample Mean") %>% # these "pooled" and Replication variables will come in later
+  spread(key = time, value = stroop_eff)
+
+# Intraclass correlation of stroop effect at time 1 and 2
+stroop_unpooled %>%
+  select(Stroop_T1, Stroop_T2) %>%
+  {irr::icc(., model = "twoway", type = "agreement", unit = "average")[c(1, 7:15)]} %>%
+  as.data.frame() 
+```
+```{r}
+stroop_unpooled %>%
+  select(Stroop_T1, Stroop_T2) %>%
+  irr::icc(., model = "twoway", type = "agreement", unit = "average")
+```
+```{r}
+stroop_unpooled %>%
+  select(Stroop_T1, Stroop_T2) %>%
+  {cor.test(.$Stroop_T1, .$Stroop_T2)}
+```
+

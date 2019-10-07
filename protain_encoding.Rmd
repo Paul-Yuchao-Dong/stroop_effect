@@ -1,0 +1,65 @@
+---
+title: "Protein Encodind"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+
+```{r sample_calc}
+healthy <- c(11.591221,	11.596078,11.580405)
+p <- c(11.490904,11.560937,11.542599)
+test <- t.test(healthy, p)
+p_val <- test$p.value
+p.adjust(p_val,method="fdr")
+```
+
+```{r}
+data <-rio::import("ProteinCoding_Expression.xlsx", which = 1)
+
+data <- data %>% 
+  janitor::clean_names()
+```
+
+# second worksheet calc
+
+```{r}
+data <- data %>% 
+  mutate(
+    p_mean = rowMeans(select(., contains("period"))),
+    h_mean = rowMeans(select(., contains("healthy")))
+    ) %>% 
+  mutate(
+    foldchanges = p_mean - h_mean
+  ) %>% 
+  nest(p_data = contains("period")) %>% 
+  nest(h_data = contains("healthy")) %>%
+  mutate(
+    p_value = purrr::map2_dbl(p_data, h_data, 
+                              function(.x,.y){
+                                # browser()
+                                t.test(.x %>% unlist, .y %>% unlist)$p.value
+                                })
+  )
+
+
+data %>% 
+  head()
+```
+
+```{r}
+data %>% 
+  filter(id == "ASHGA5P000671") %>% 
+  pull(p_value)
+```
+
+
+```{r}
+data %>%
+  select(p_value) %>% 
+  mutate(fdr = p.adjust(p_value))
+```
+
