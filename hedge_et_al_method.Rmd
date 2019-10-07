@@ -22,6 +22,7 @@ library(knitr)
 library(irr)
 # For Bayesian modeling
 library(rstan)
+options(mc.cores = parallel::detectCores())
 # For some useful utility functions
 library(hBayesDM)
 
@@ -106,4 +107,57 @@ stroop_unpooled %>%
   select(Stroop_T1, Stroop_T2) %>%
   {cor.test(.$Stroop_T1, .$Stroop_T2)}
 ```
+
+```{r}
+stroop_unpooled %>% 
+  ggplot(aes(Stroop_T1, Stroop_T2))+
+  geom_point()+
+  geom_abline(lty = 2)+
+  coord_equal()+
+  NULL
+```
+
+# Model 1
+```{r}
+n_subj <- long_stroop$subj_num %>% unique %>% length
+n_cond <- 2
+n_time <- 2
+T_max <- 240
+
+RT <- array(NA, dim = c(n_subj, n_cond, n_time, T_max))
+for (i in 1:n_subj){
+  RT[i, 1, 1,] = with(long_stroop, RT[subj_num==i & Condition==0 & time==1])
+  # RTs for incongruent condition at time 1
+  RT[i, 2, 1,] = with(long_stroop, RT[subj_num==i & Condition==2 & time==1])
+  # RTs for congruent condition at time 2
+  RT[i, 1, 2,] = with(long_stroop, RT[subj_num==i & Condition==0 & time==2])
+  # RTs for incongruent condition at time 2
+  RT[i, 2, 2,] = with(long_stroop, RT[subj_num==i & Condition==2 & time==2])
+}
+```
+```{r}
+# Stan-ready data list
+stan_dat <- list(N      = n_subj,
+                 N_cond = n_cond,
+                 N_time = n_time,
+                 T_max  = T_max,
+                 RT     = RT)
+```
+```{r}
+stroop_m1 <- stan_model("model1.stan")
+
+fit_m1 <- sampling(
+  stroop_m1,
+  data = stan_dat,
+  iter = 2000,
+  warmup = 500,
+  chains = 3,
+  cores = 3,
+  seed = 2
+)
+```
+```{r}
+pairs(fit_m1, pars = c("mu_beta_con", "sigma_con"))
+```
+
 
