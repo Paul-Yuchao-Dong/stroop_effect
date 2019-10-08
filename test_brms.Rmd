@@ -1,0 +1,18 @@
+---
+title: "test_brms"
+author: "Paul Dong"
+date: "2019/10/8"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(brms)
+```
+```{r}
+test_brms <- brm(count ~ zAge + zBase * Trt + (1|patient), 
+            data = epilepsy, family = poisson())
+```
+
