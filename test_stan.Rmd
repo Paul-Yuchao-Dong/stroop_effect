@@ -1,0 +1,25 @@
+---
+title: "test_stan"
+author: "Paul Dong"
+date: "2019/10/8"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(rstan)
+```
+
+```{r}
+schools_dat <- list(J = 8, 
+                    y = c(28,  8, -3,  7, -1,  1, 18, 12),
+                    sigma = c(15, 10, 16, 11,  9, 11, 10, 18))
+```
+
+```{r}
+fit <- stan(file = '8schools.stan', data = schools_dat)
+```
+```{r}
+pairs(fit, pars = c("mu","tau","eta"))
+```
+

@@ -1,0 +1,73 @@
+---
+title: "test_rethinking"
+author: "Paul Dong"
+date: "2019/10/8"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(rethinking)
+```
+```{r}
+
+f <- alist(
+    y ~ dnorm( mu , sigma ),
+    mu ~ dnorm( 0 , 10 ),
+    sigma ~ dexp( 1 )
+)
+
+fit <- quap( 
+    f , 
+    data=list(y=c(-1,1)) , 
+    start=list(mu=0,sigma=1)
+)
+```
+this simple example wouldn't run
+```{r}
+fit_stan <- ulam(
+    alist(
+        y ~ normal( mu , sigma ),
+        mu ~ normal( 0 , 10 ),
+        sigma ~ exponential( 1 )
+    ), data=list(y=c(-1.0,1.0)) )
+```
+
+```{r}
+# prep data
+data( UCBadmit )
+UCBadmit$male <- as.integer(UCBadmit$applicant.gender=="male")
+UCBadmit$dept <- rep( 1:6 , each=2 )
+UCBadmit$applicant.gender <- NULL
+
+# varying intercepts model
+m_glmm1 <- ulam(
+    alist(
+        admit ~ binomial(applications,p),
+        logit(p) <- a[dept] + b*male,
+        a[dept] ~ normal( abar , sigma ),
+        abar ~ normal( 0 , 4 ),
+        sigma ~ half_normal(0,1),
+        b ~ normal(0,1)
+    ), data=UCBadmit )
+```
+
+```{r}
+summary(m_glmm1)
+```
+```{r}
+m_glmm2 <- ulam(
+    alist(
+        admit ~ binomial(applications,p),
+        logit(p) <- a[dept] + b[dept]*male,
+        c( a , b )[dept] ~ multi_normal( c(abar,bbar) , Rho , sigma ),
+        abar ~ normal( 0 , 4 ),
+        bbar ~ normal(0,1),
+        sigma ~ half_normal(0,1),
+        Rho ~ lkjcorr(2)
+    ),
+    data=UCBadmit )
+```
+

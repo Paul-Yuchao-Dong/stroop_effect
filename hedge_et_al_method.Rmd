@@ -3,6 +3,8 @@ title: "hedge_et_al_method"
 author: "paul"
 date: "10/5/2019"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -74,8 +76,7 @@ sum_stroop %>%
 ```{r}
 sum_stroop %>% 
   group_by(time) %>% 
-  group_map(~t.test(.$stroop_eff) %>% tidy) %>% 
-  bind_rows() 
+  group_modify(~t.test(.$stroop_eff) %>% tidy) 
 ```
 ```{r}
 sum_stroop %>% 
@@ -146,6 +147,8 @@ stan_dat <- list(N      = n_subj,
 ```{r}
 stroop_m1 <- stan_model("model1.stan")
 
+```
+```{r}
 fit_m1 <- sampling(
   stroop_m1,
   data = stan_dat,
@@ -155,9 +158,25 @@ fit_m1 <- sampling(
   cores = 3,
   seed = 2
 )
+
 ```
+
+
 ```{r}
 pairs(fit_m1, pars = c("mu_beta_con", "sigma_con"))
+```
+```{r}
+stroop_m2 <- stan_model("model2.stan")
+```
+```{r}
+fit_m2 <- sampling(stroop_m2,
+                   data = stan_dat,
+                   iter = 2000,
+                   warmup = 500,
+                   chains = 3,
+                   cores = 3,
+                   seed = 2
+                   )
 ```
 
 
