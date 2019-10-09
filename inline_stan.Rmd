@@ -1,0 +1,62 @@
+---
+title: "non-centered"
+author: "Paul Dong"
+date: "2019/10/8"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(rstan)
+options(mc.cores = parallel::detectCores())
+rstan_options(auto_write = TRUE)
+library(magrittr)
+library(ggplot2)
+```
+
+```{stan, output.var = "funnelcentered", cache=TRUE}
+parameters {
+  real y;
+  vector[9] x;
+}
+model {
+  y ~ normal(0,3);
+  x ~ normal(0, exp(y/2));
+}
+```
+
+```{r cache=TRUE}
+fit <- sampling(funnelcentered)
+traces <- as.data.frame(fit)
+
+traces %>% 
+  ggplot(aes(`x[1]`, y))+
+    geom_point(alpha=0.2)
+```
+
+```{stan, output.var = "funnel_noncentered", cache=TRUE}
+parameters {
+  real y_raw;
+  vector[9] x_raw;
+}
+transformed parameters{
+  real y;
+  vector[9] x;
+  y = 3.0 * y_raw;
+  x = x_raw * exp(y / 2);
+}
+model {
+  x_raw ~ std_normal();
+  y_raw ~ std_normal();
+}
+```
+```{r cache=TRUE}
+fit_nc <- sampling(funnel_noncentered)
+traces <- as.data.frame(fit_nc)
+
+traces %>% 
+  ggplot(aes(`x[1]`, y))+
+    geom_point(alpha=0.2)
+```
