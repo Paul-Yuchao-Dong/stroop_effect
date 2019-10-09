@@ -36,7 +36,7 @@ transformed parameters {
   matrix[N,2] beta_delta;
   
   // Construct individual offsets
-  beta_delta_tilde = diag_pre_multiply(sigma_delta, R_cholesky);
+  beta_delta_tilde = diag_pre_multiply(sigma_delta, R_cholesky) * beta_delta_pr;
 
   for (i in 1:N){
     // Congruent at time 1
