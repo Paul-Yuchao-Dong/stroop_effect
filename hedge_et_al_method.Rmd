@@ -180,4 +180,68 @@ fit_m2 <- sampling(stroop_m2,
                    )
 ```
 
+```{r}
+pairs(fit_m2, pars = c("mu_beta_con", "sigma_con"))
+```
+```{r}
+traceplot(fit_m1, c("mu_beta_con", "mu_beta_delta","R[1,2]"))
+```
+```{r}
+traceplot(fit_m2, c("mu_beta_con", "mu_beta_delta","R[1,2]"))
+```
+```{r}
+stan_rhat(fit_m1, bins = 30)
+stan_rhat(fit_m2, bins = 30)
+```
+
+```{r}
+pars <- extract(fit_m1)
+qplot(pars$R[,1,2], geom = "density")
+```
+
+
+```{r}
+pars <- extract(fit_m2)
+qplot(pars$R[,1,2], geom = "density")
+```
+
+```{r}
+pars <- extract(fit_m1)
+estimate_mode(pars$R[,1,2])
+```
+
+```{r}
+# Extracting posterior modes of individual-level Stroop effect estimates
+stroop_pooled <- apply(pars$beta_delta, c(2,3), mean) %>%
+  as.data.frame() %>%
+  rename(Stroop_T1 = V1,
+         Stroop_T2 = V2) %>%
+  mutate(subj_num = row_number(),
+         pooled = "Yes")
+# Pooled correlation
+pooled_cor <- with(stroop_pooled, round(cor(Stroop_T1[pooled=="Yes"], Stroop_T2[pooled=="Yes"]), 2))
+
+# My favorite visualization of all time
+bind_rows(stroop_unpooled, stroop_pooled) %>%
+  mutate(subj_num = as.factor(subj_num)) %>%
+  ggplot(aes(x = Stroop_T1, y = Stroop_T2)) +
+  ggtitle(paste0("Posterior Means r = ", pooled_cor)) +
+  geom_abline(intercept = 0, slope = 1, linetype = 2, color = "black", size = 1) +
+  stat_ellipse(geom="polygon", type="norm", level=1/10, size=0, alpha=1/10, fill="gray") +
+  stat_ellipse(geom="polygon", type="norm", level=2/10, size=0, alpha=1/10, fill="gray") +
+  stat_ellipse(geom="polygon", type="norm", level=3/10, size=0, alpha=1/10, fill="gray") +
+  stat_ellipse(geom="polygon", type="norm", level=4/10, size=0, alpha=1/10, fill="gray") +
+  stat_ellipse(geom="polygon", type="norm", level=5/10, size=0, alpha=1/10, fill="gray") +
+  stat_ellipse(geom="polygon", type="norm", level=6/10, size=0, alpha=1/10, fill="gray") +
+  stat_ellipse(geom="polygon", type="norm", level=7/10, size=0, alpha=1/10, fill="gray") +
+  stat_ellipse(geom="polygon", type="norm", level=8/10, size=0, alpha=1/10, fill="gray") +
+  stat_ellipse(geom="polygon", type="norm", level=9/10, size=0, alpha=1/10, fill="gray") +
+  stat_ellipse(geom="polygon", type="norm", level=.99, size=0, alpha=1/10, fill="gray") +
+  geom_line(aes(group = subj_num), size = 1/4) +
+  geom_point(aes(group = subj_num, color = pooled)) +
+  scale_color_manual("Pooled?",
+                     values = c("#990000", "#fee8c8")) +
+  theme_minimal(base_size = 20) +
+  theme(panel.grid = element_blank())
+```
 

@@ -69,9 +69,9 @@ model {
     // Congruent at time 1
     RT[i,1,1,:] ~ normal(beta_con[i,1], sigma_RT[1]);
     // incongruent at time 1
-    RT[i,1,2,:] ~ normal(beta_con[i,1] + beta_delta[i,1], sigma_RT[2]);
+    RT[i,2,1,:] ~ normal(beta_con[i,1] + beta_delta[i,1], sigma_RT[2]);
     // Congruent at time 2
-    RT[i,2,1,:] ~ normal(beta_con[i,2], sigma_RT[1]);
+    RT[i,1,2,:] ~ normal(beta_con[i,2], sigma_RT[1]);
     // Incongruent at time 2
     RT[i,2,2,:] ~ normal(beta_con[i,2] + beta_delta[i,2], sigma_RT[2]);
   }
