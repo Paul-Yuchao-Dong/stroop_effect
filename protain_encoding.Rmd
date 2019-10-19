@@ -25,6 +25,16 @@ data <- data %>%
 ```
 
 # second worksheet calc
+```{r}
+data %>% 
+  rowwise() %>% 
+  group_modify(~ data.frame(    
+    p_mean = rowMeans(select(., contains("period"))),
+    h_mean = rowMeans(select(., contains("healthy")))
+    )
+    ) %>% 
+  head()
+```
 
 ```{r}
 data <- data %>% 
